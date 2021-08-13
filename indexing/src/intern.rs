@@ -2,11 +2,11 @@
 
 use std::{borrow::Borrow, ops::Deref, ptr, sync::Arc};
 
-use crate::storage::Avl;
+use crate::storage::MvccAvl;
 
 /// Interned value pool.
 pub struct InternPool<T> {
-    values: Avl<T, Arc<T>>,
+    values: MvccAvl<T, Arc<T>>,
 }
 
 impl<T> InternPool<T>
@@ -15,7 +15,9 @@ where
 {
     /// Create a new instance of [`InternPool`].
     pub fn new() -> Self {
-        Self { values: Avl::new() }
+        Self {
+            values: MvccAvl::new(),
+        }
     }
 
     /// Intern a value.
@@ -27,7 +29,7 @@ where
         T: Borrow<K>,
         K: ?Sized + Ord + ToOwned<Owned = T>,
     {
-        if let Some(reference) = self.values.get(value).as_deref() {
+        if let Some(reference) = self.values.snapshot().get(value).as_deref() {
             InternRef(Arc::clone(reference))
         } else {
             let interned = Arc::new(value.to_owned());

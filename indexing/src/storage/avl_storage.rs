@@ -6,7 +6,7 @@ use std::{
 use crate::{
     intern::InternPool,
     storage::{
-        avl::{Avl, ValueRef},
+        avl::{MvccAvl, ValueRef},
         list::List,
         IndexEntry,
     },
@@ -16,7 +16,7 @@ use crate::{
 /// Index storage that uses [`Avl`] as a data container.
 pub(crate) struct AvlStorage {
     intern_pool: InternPool<PathBuf>,
-    avl: Avl<String, Arc<List<IndexEntry>>>,
+    avl: MvccAvl<String, Arc<List<IndexEntry>>>,
 }
 
 impl AvlStorage {
@@ -24,19 +24,19 @@ impl AvlStorage {
     pub fn new() -> Self {
         Self {
             intern_pool: InternPool::new(),
-            avl: Avl::new(),
+            avl: MvccAvl::new(),
         }
     }
 
     /// Get a list of [`IndexEntry`] instances associated with this term (if any).
     pub fn get(&self, word: &str) -> Option<ValueRef<String, Arc<List<IndexEntry>>>> {
-        self.avl.get(word)
+        self.avl.snapshot().get(word)
     }
 
     /// Purge the given `path` from the index.
     pub fn purge(&self, path: &Path) {
         let interned_path = self.intern_pool.intern(path);
-        for (k, v) in self.avl.iter() {
+        for (k, v) in self.avl.snapshot().iter() {
             if v.iter().any(|entry| entry.path == interned_path) {
                 self.avl.update(k, |e| {
                     e.iter().fold(Arc::new(List::Null), |l, e| {

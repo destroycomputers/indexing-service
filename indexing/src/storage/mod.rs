@@ -5,7 +5,7 @@ mod list;
 
 use std::path::PathBuf;
 
-pub(crate) use avl::Avl;
+pub(crate) use avl::MvccAvl;
 pub(crate) use avl_storage::AvlStorage;
 
 use crate::intern::InternRef;
