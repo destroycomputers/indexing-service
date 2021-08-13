@@ -1,14 +1,10 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
 
 use crate::{
     intern::InternPool,
     storage::{
         avl::{MvccAvl, ValueRef},
-        list::List,
-        IndexEntry,
+        IndexEntry, IndexEntryList,
     },
     tokenise::Token,
 };
@@ -16,7 +12,7 @@ use crate::{
 /// Index storage that uses [`Avl`] as a data container.
 pub(crate) struct AvlStorage {
     intern_pool: InternPool<PathBuf>,
-    avl: MvccAvl<String, Arc<List<IndexEntry>>>,
+    avl: MvccAvl<String, IndexEntryList>,
 }
 
 impl AvlStorage {
@@ -29,7 +25,7 @@ impl AvlStorage {
     }
 
     /// Get a list of [`IndexEntry`] instances associated with this term (if any).
-    pub fn get(&self, word: &str) -> Option<ValueRef<String, Arc<List<IndexEntry>>>> {
+    pub fn get(&self, word: &str) -> Option<ValueRef<String, IndexEntryList>> {
         self.avl.snapshot().get(word)
     }
 
@@ -37,13 +33,13 @@ impl AvlStorage {
     pub fn purge(&self, path: &Path) {
         let interned_path = self.intern_pool.intern(path);
         for (k, v) in self.avl.snapshot().iter() {
-            if v.iter().any(|entry| entry.path == interned_path) {
+            if v.iter().any(|(_, entry)| entry.path == interned_path) {
                 self.avl.update(k, |e| {
-                    e.iter().fold(Arc::new(List::Null), |l, e| {
+                    e.iter().fold(IndexEntryList::new(), |l, (_, e)| {
                         if e.path == interned_path {
                             l
                         } else {
-                            Arc::new(List::Cons(e.clone(), l))
+                            l.append(e.clone())
                         }
                     })
                 });
@@ -56,13 +52,12 @@ impl AvlStorage {
         let Token { value, offset } = token;
 
         self.avl.upsert(value, |entries| {
-            Arc::new(List::Cons(
-                IndexEntry {
-                    path: self.intern_pool.intern(path),
-                    offset,
-                },
-                entries.cloned().unwrap_or_else(|| Arc::new(List::Null)),
-            ))
+            let entries = entries.cloned().unwrap_or_else(IndexEntryList::new);
+
+            entries.append(IndexEntry {
+                path: self.intern_pool.intern(path),
+                offset,
+            })
         })
     }
 }
