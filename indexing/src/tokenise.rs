@@ -4,9 +4,9 @@
 //!  * `SpaceTokeniser` - splits input by white space
 //!  * `RegexTokeniser` - splits input by the provided regex
 //!
-//! To use a [`Tokeniser`] with an [`Indexer`] one should implement a [`TokeniserFactory`] that creates
-//! a fresh tokeniser instance in a read-to-use state. For the simple case, [`TokeniserFactory`] is
-//! implemented on `Fn() -> Box<dyn Tokeniser>`.
+//! To use a [`Tokeniser`] with an [`crate::indexer::Indexer`] one should implement a [`TokeniserFactory`]
+//! that creates a fresh tokeniser instance in a read-to-use state. For the simple case, [`TokeniserFactory`]
+//! is implemented on `Fn() -> Box<dyn Tokeniser>`.
 use std::{
     hash::Hash,
     io::{self, BufRead},

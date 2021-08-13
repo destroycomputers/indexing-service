@@ -4,7 +4,7 @@ use thiserror::Error;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-/// Error that can be returned by [`Indexer`] methods.
+/// Error that can be returned by [`crate::indexer::Indexer`] methods.
 #[derive(Debug, Error)]
 pub enum Error {
     /// File watcher errors.
