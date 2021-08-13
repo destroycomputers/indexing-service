@@ -61,7 +61,7 @@ impl Indexer {
             .map(|entries| {
                 entries
                     .iter()
-                    .map(|(_, entry)| entry.path.as_path())
+                    .map(|(path, _)| path.as_path())
                     .collect::<HashSet<_>>()
                     .into_iter()
                     .map(|p| p.to_string_lossy().into_owned())

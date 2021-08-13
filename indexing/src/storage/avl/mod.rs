@@ -7,6 +7,11 @@ pub use mvcc::MvccAvl;
 
 use node::Node;
 
+/// Convenience alias to use Avl as a set of elements.
+///
+/// Methods still require to pass `()` in as a value parameter.
+pub type AvlSet<T> = Avl<T, ()>;
+
 /// AVL tree implementation.
 ///
 /// This is a self-balancing tree which guarantees the difference in branches height to be no more than one.

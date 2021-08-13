@@ -4,46 +4,41 @@ mod avl_storage;
 
 use std::path::PathBuf;
 
-pub(crate) use avl::{Avl, MvccAvl};
+pub(crate) use avl::{Avl, AvlSet, MvccAvl};
 pub(crate) use avl_storage::AvlStorage;
 
 use crate::intern::InternRef;
 
-/// Index entry.
-///
-/// For the given term, a list of index entries is associated, that stores
-/// what files and at what offset contain the given term.
-#[derive(Clone)]
-pub(crate) struct IndexEntry {
-    pub path: InternRef<PathBuf>,
-    pub offset: u64,
-}
-
-/// List of index entries.
 #[derive(Clone)]
 pub(crate) struct IndexEntryList {
-    // Key is a fake key for the AVL. We want to store a list of values and using AVL for this
-    // only to limit the depth of recursion required to drop the list.
-    key: usize,
-    avl: Avl<usize, IndexEntry>,
+    pub entries: Avl<InternRef<PathBuf>, AvlSet<u64>>,
 }
 
 impl IndexEntryList {
     pub fn new() -> Self {
         Self {
-            key: 0,
-            avl: Avl::new(),
+            entries: Avl::new(),
         }
     }
 
-    pub fn append(&self, entry: IndexEntry) -> Self {
+    pub fn append(&self, path: InternRef<PathBuf>, offset: u64) -> Self {
         Self {
-            key: self.key + 1,
-            avl: self.avl.insert(self.key, entry),
+            entries: self.entries.upsert(path, |set| {
+                set.as_deref()
+                    .cloned()
+                    .unwrap_or_else(AvlSet::new)
+                    .insert(offset, ())
+            }),
         }
     }
 
-    pub fn iter(&self) -> avl::Iter<'_, usize, IndexEntry> {
-        self.avl.iter()
+    pub fn remove(&self, path: &InternRef<PathBuf>) -> Self {
+        Self {
+            entries: self.entries.remove(path),
+        }
+    }
+
+    pub fn iter(&self) -> avl::Iter<'_, InternRef<PathBuf>, AvlSet<u64>> {
+        self.entries.iter()
     }
 }
